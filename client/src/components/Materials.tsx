@@ -24,24 +24,22 @@ export default function Materials() {
         </div>
 
         <div className="grid gap-4">
-          {/* Card 2 — PDF */}
-          <a
-            href="/materials/informacja-o-badaniu.pdf"
-            download
-            className="group flex flex-col bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-400 hover:shadow-md transition-all duration-200 animate-fadeIn"
+          {/* PDF inline viewer */}
+          <div
+            className="bg-white rounded-2xl border border-gray-200 overflow-hidden animate-fadeIn"
             style={{ animationDelay: '80ms' }}
           >
-            <div className="text-2xl mb-3">📄</div>
-            <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-blue-700 transition-colors">
-              Pobierz prezentację PDF
-            </h3>
-            <p className="text-sm text-gray-500 leading-relaxed flex-1">
-              Krótka prezentacja aplikacji i zakresu badania.
-            </p>
-            <span className="mt-4 text-sm font-medium text-blue-700 group-hover:underline">
-              Pobierz PDF →
-            </span>
-          </a>
+            <div className="px-5 pt-5 pb-3 flex items-center gap-2">
+              <span className="text-lg">📄</span>
+              <h3 className="font-semibold text-gray-900 text-sm">Prezentacja aplikacji</h3>
+            </div>
+            <iframe
+              src="/materials/informacja-o-badaniu.pdf#toolbar=0&navpanes=0&scrollbar=0"
+              className="w-full"
+              style={{ height: '480px', border: 'none' }}
+              title="Prezentacja aplikacji do badania"
+            />
+          </div>
         </div>
       </div>
     </div>
