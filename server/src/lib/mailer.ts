@@ -26,7 +26,8 @@ let currentRefreshToken = '';
 
 function getRefreshToken(): string {
   if (!currentRefreshToken) {
-    currentRefreshToken = process.env.AZURE_REFRESH_TOKEN ?? '';
+    // Strip any whitespace/newlines that may have been introduced during copy-paste
+    currentRefreshToken = (process.env.AZURE_REFRESH_TOKEN ?? '').replace(/\s+/g, '');
   }
   return currentRefreshToken;
 }
