@@ -40,16 +40,13 @@ async function getGraphToken(): Promise<string> {
     throw new Error('[mailer] Missing AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_REFRESH_TOKEN');
   }
 
+  // PublicClientApplication flow — no client_secret in token request
   const params = new URLSearchParams({
     grant_type: 'refresh_token',
     client_id: clientId,
     refresh_token: refreshToken,
     scope: 'https://graph.microsoft.com/Mail.Send offline_access',
   });
-
-  // client_secret only if set (confidential client)
-  const clientSecret = process.env.AZURE_CLIENT_SECRET;
-  if (clientSecret) params.set('client_secret', clientSecret);
 
   const res = await fetch(
     `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
