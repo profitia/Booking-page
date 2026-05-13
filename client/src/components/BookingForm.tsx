@@ -12,9 +12,13 @@ const MONTHS_PL = [
   'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia',
 ];
 
-function formatSlot(slot: Slot): string {
+const DAYS_FULL_PL = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+
+function formatSlotLabel(slot: Slot): string {
   const [year, month, day] = slot.date.split('-').map(Number);
-  return `${day} ${MONTHS_PL[month]} ${year}, ${slot.startTime}–${slot.endTime}`;
+  const date = new Date(year, month - 1, day);
+  const dayName = DAYS_FULL_PL[date.getDay()];
+  return `${dayName}, ${day} ${MONTHS_PL[month]} · ${slot.startTime}–${slot.endTime}`;
 }
 
 export default function BookingForm({ selectedSlot, onBook, submitting }: Props) {
@@ -58,114 +62,130 @@ export default function BookingForm({ selectedSlot, onBook, submitting }: Props)
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    <div className="animate-fadeIn">
+      {/* Sticky summary */}
       {selectedSlot && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-6">
-          <p className="text-sm text-blue-800">
-            Wybrany termin: <strong>{formatSlot(selectedSlot)}</strong>
-          </p>
+        <div className="sticky top-4 z-10 mb-6">
+          <div className="bg-blue-700 text-white rounded-2xl px-5 py-3.5 shadow-lg flex items-center gap-3">
+            <svg className="w-4 h-4 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div>
+              <p className="text-xs font-semibold opacity-70 uppercase tracking-wider mb-0.5">Wybrany termin</p>
+              <p className="text-sm font-semibold">{formatSlotLabel(selectedSlot)}</p>
+            </div>
+          </div>
         </div>
       )}
 
       {errors.slot && (
-        <p className="text-amber-600 text-sm -mt-2">{errors.slot}</p>
+        <p className="text-amber-600 text-sm mb-4 flex items-center gap-1.5">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          {errors.slot}
+        </p>
       )}
 
-      {/* Imię i nazwisko */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Imię i nazwisko
-        </label>
-        <input
-          type="text"
-          autoComplete="name"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          placeholder="Jan Kowalski"
-          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-            errors.fullName ? 'border-red-400 bg-red-50' : 'border-gray-300'
-          }`}
-        />
-        {errors.fullName && (
-          <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>
-        )}
-      </div>
+      {/* Form card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
 
-      {/* Email */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Adres email
-        </label>
-        <input
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="jan.kowalski@firma.pl"
-          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-            errors.email ? 'border-red-400 bg-red-50' : 'border-gray-300'
-          }`}
-        />
-        {errors.email && (
-          <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-        )}
-      </div>
+          {/* Imię i nazwisko */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Imię i nazwisko
+            </label>
+            <input
+              type="text"
+              autoComplete="name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Jan Kowalski"
+              className={`w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                errors.fullName ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            />
+            {errors.fullName && (
+              <p className="text-red-500 text-xs mt-1.5">{errors.fullName}</p>
+            )}
+          </div>
 
-      {/* Telefon */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Numer telefonu
-        </label>
-        <input
-          type="tel"
-          autoComplete="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="+48 600 000 000"
-          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-            errors.phone ? 'border-red-400 bg-red-50' : 'border-gray-300'
-          }`}
-        />
-        {errors.phone && (
-          <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
-        )}
-      </div>
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Adres email
+            </label>
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="jan.kowalski@firma.pl"
+              className={`w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                errors.email ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1.5">{errors.email}</p>
+            )}
+          </div>
 
-      {/* RODO */}
-      <div className="pt-1">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={rodo}
-            onChange={(e) => setRodo(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
-          />
-          <span className="text-xs text-gray-600 leading-relaxed">
-            Wyrażam zgodę na przetwarzanie moich danych osobowych na potrzeby organizacji badania
-            przez Profitia Management Consultants Mazurowski i Wspólnicy Sp. J., 02-715 Warszawa,
-            Villa Metro, ul. Puławska 145, V p.
-          </span>
-        </label>
-        {errors.rodo && (
-          <p className="text-red-500 text-xs mt-1 ml-7">{errors.rodo}</p>
-        )}
-      </div>
+          {/* Telefon */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Numer telefonu
+            </label>
+            <input
+              type="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+48 600 000 000"
+              className={`w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                errors.phone ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            />
+            {errors.phone && (
+              <p className="text-red-500 text-xs mt-1.5">{errors.phone}</p>
+            )}
+          </div>
 
-      {submitError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <p className="text-sm text-red-700">{submitError}</p>
-        </div>
-      )}
+          {/* RODO */}
+          <div className="pt-1">
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={rodo}
+                onChange={(e) => setRodo(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+              />
+              <span className="text-xs text-gray-500 leading-relaxed group-hover:text-gray-700 transition-colors">
+                Wyrażam zgodę na przetwarzanie moich danych osobowych na potrzeby organizacji badania
+                przez Profitia Management Consultants Mazurowski i Wspólnicy Sp. J., 02-715 Warszawa,
+                Villa Metro, ul. Puławska 145, V p.
+              </span>
+            </label>
+            {errors.rodo && (
+              <p className="text-red-500 text-xs mt-1.5 ml-7">{errors.rodo}</p>
+            )}
+          </div>
 
-      <div className="pt-2">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full py-3 px-6 bg-blue-700 text-white text-sm font-medium rounded-lg hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          {submitting ? 'Rezerwuję...' : 'Zarezerwuj termin'}
-        </button>
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <p className="text-sm text-red-700">{submitError}</p>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full py-3.5 px-6 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-[0.99]"
+          >
+            {submitting ? 'Rezerwuję...' : 'Zarezerwuj termin'}
+          </button>
+        </form>
       </div>
-    </form>
+    </div>
   );
 }

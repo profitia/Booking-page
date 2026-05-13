@@ -6,6 +6,17 @@ import SlotPicker from './components/SlotPicker';
 import BookingForm from './components/BookingForm';
 import SuccessScreen from './components/SuccessScreen';
 
+function StepHeading({ number, label }: { number: number; label: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-6">
+      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-700 text-white text-xs font-bold flex-shrink-0">
+        {number}
+      </span>
+      <h2 className="text-lg font-semibold text-gray-900">{label}</h2>
+    </div>
+  );
+}
+
 export default function App() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,33 +72,50 @@ export default function App() {
     <div className="min-h-screen bg-white">
       <Hero />
       <Materials />
-      <div className="max-w-2xl mx-auto px-4 pb-24">
-        <div id="booking" className="pt-12">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-8">Wybierz termin</h2>
+
+      <div className="max-w-3xl mx-auto px-4 pb-24">
+
+        {/* Krok 2 — Wybór terminu */}
+        <div id="booking" className="pt-14 border-b border-gray-100 pb-10">
+          <StepHeading number={2} label="Wybierz termin" />
 
           {loading && (
             <p className="text-gray-400 text-sm">Ładowanie terminów...</p>
           )}
-
           {fetchError && (
             <p className="text-red-600 text-sm">{fetchError}</p>
           )}
-
           {!loading && !fetchError && (
-            <>
-              <SlotPicker
-                slots={slots}
-                selectedSlot={selectedSlot}
-                onSelect={setSelectedSlot}
-              />
-              <BookingForm
-                selectedSlot={selectedSlot}
-                onBook={handleBook}
-                submitting={submitting}
-              />
-            </>
+            <SlotPicker
+              slots={slots}
+              selectedSlot={selectedSlot}
+              onSelect={(slot) => {
+                setSelectedSlot(slot);
+                setTimeout(() => {
+                  document.getElementById('form-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 120);
+              }}
+            />
           )}
         </div>
+
+        {/* Krok 3 — Dane kontaktowe */}
+        <div id="form-section" className="pt-14">
+          <StepHeading number={3} label="Podaj dane kontaktowe" />
+          <BookingForm
+            selectedSlot={selectedSlot}
+            onBook={handleBook}
+            submitting={submitting}
+          />
+        </div>
+
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-gray-100 py-6">
+        <p className="text-center text-xs text-gray-400">
+          Profitia Management Consultants Mazurowski i Wspólnicy Sp. J. · ul. Puławska 145, 02-715 Warszawa
+        </p>
       </div>
     </div>
   );

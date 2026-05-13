@@ -11,16 +11,22 @@ const MONTHS_PL = [
   'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia',
 ];
 
-const DAYS_PL = ['niedz.', 'pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.'];
+const MONTHS_SHORT_PL = [
+  '', 'STY', 'LUT', 'MAR', 'KWI', 'MAJ', 'CZE',
+  'LIP', 'SIE', 'WRZ', 'PAŹ', 'LIS', 'GRU',
+];
 
-function formatDate(dateStr: string): string {
+const DAYS_PL = ['NIEDZ.', 'PON.', 'WT.', 'ŚR.', 'CZW.', 'PT.', 'SOB.'];
+
+function parseDateParts(dateStr: string) {
   const [year, month, day] = dateStr.split('-').map(Number);
   const date = new Date(year, month - 1, day);
-  const dayName = DAYS_PL[date.getDay()];
-  return `${dayName} ${day} ${MONTHS_PL[month]}`;
+  return { year, month, day, dayOfWeek: date.getDay() };
 }
 
 export default function SlotPicker({ slots, selectedSlot, onSelect }: Props) {
+  const availableCount = slots.filter((s) => !s.isReserved).length;
+
   const grouped = slots.reduce<Record<string, Slot[]>>((acc, slot) => {
     if (!acc[slot.date]) acc[slot.date] = [];
     acc[slot.date].push(slot);
@@ -30,46 +36,102 @@ export default function SlotPicker({ slots, selectedSlot, onSelect }: Props) {
   const dates = Object.keys(grouped).sort();
 
   if (dates.length === 0) {
-    return (
-      <p className="text-gray-500 text-sm mb-8">Brak dostępnych terminów.</p>
-    );
+    return <p className="text-gray-400 text-sm mb-8">Brak dostępnych terminów.</p>;
   }
 
   return (
-    <div className="mb-10 space-y-5">
-      {dates.map((date) => (
-        <div key={date}>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-            {formatDate(date)}
-          </p>
-          <div className="flex gap-3 flex-wrap">
-            {grouped[date].map((slot) => {
-              const isSelected = selectedSlot?.id === slot.id;
-              return (
-                <button
-                  key={slot.id}
-                  type="button"
-                  disabled={slot.isReserved}
-                  onClick={() => onSelect(slot)}
-                  className={[
-                    'px-4 py-2 rounded-lg border text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1',
-                    slot.isReserved
-                      ? 'bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed'
-                      : isSelected
-                      ? 'bg-blue-700 text-white border-blue-700 shadow-sm'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-600 hover:text-blue-700',
-                  ].join(' ')}
-                >
-                  {slot.startTime} – {slot.endTime}
-                  {slot.isReserved && (
-                    <span className="ml-2 text-xs font-normal">zajęty</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+    <div className="mb-10">
+      {/* Licznik */}
+      <div className="flex items-center gap-2 mb-5">
+        <span
+          className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1 rounded-full ${
+            availableCount > 0
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-gray-100 text-gray-500'
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+              availableCount > 0 ? 'bg-green-500' : 'bg-gray-400'
+            }`}
+          />
+          {availableCount > 0
+            ? `Pozostało ${availableCount} dostępnych terminów`
+            : 'Brak dostępnych terminów'}
+        </span>
+      </div>
+
+      {/* Grid kart */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {dates.map((date, idx) => {
+          const { month, day, dayOfWeek } = parseDateParts(date);
+          const daySlots = grouped[date];
+          const hasAvailable = daySlots.some((s) => !s.isReserved);
+
+          return (
+            <div
+              key={date}
+              className={`rounded-2xl border bg-white p-4 transition-all duration-200 animate-fadeIn ${
+                hasAvailable
+                  ? 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
+                  : 'border-gray-100 opacity-60'
+              }`}
+              style={{ animationDelay: `${idx * 40}ms` }}
+            >
+              {/* Nagłówek karty */}
+              <div className="mb-3 pb-3 border-b border-gray-100">
+                <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase">
+                  {DAYS_PL[dayOfWeek]}
+                </p>
+                <p className="text-lg font-bold text-gray-900">
+                  {day} {MONTHS_SHORT_PL[month]}
+                </p>
+              </div>
+
+              {/* Sloty */}
+              <div className="space-y-2">
+                {daySlots.map((slot) => {
+                  const isSelected = selectedSlot?.id === slot.id;
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      disabled={slot.isReserved}
+                      onClick={() => onSelect(slot)}
+                      className={[
+                        'w-full rounded-xl px-3 py-2.5 text-sm font-medium border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1',
+                        slot.isReserved
+                          ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-blue-700 text-white border-blue-700 shadow-sm scale-[1.02]'
+                          : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400 hover:text-blue-700 hover:scale-[1.02] active:scale-100',
+                      ].join(' ')}
+                    >
+                      {slot.isReserved ? (
+                        <span className="flex items-center justify-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-300 flex-shrink-0" />
+                          {slot.startTime}–{slot.endTime}
+                          <span className="text-xs font-normal text-gray-300 ml-1">zajęty</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center gap-1.5">
+                          {isSelected && (
+                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                          {slot.startTime}–{slot.endTime}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
+
