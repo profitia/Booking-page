@@ -25,7 +25,14 @@ function formatDate(dateStr: string): string {
 
 export async function sendAdminNotification(data: NotificationData): Promise<void> {
   const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail || !process.env.SMTP_HOST) return;
+  if (!adminEmail) {
+    console.warn('[mailer] ADMIN_EMAIL not set — skipping notification');
+    return;
+  }
+  if (!process.env.SMTP_HOST) {
+    console.warn('[mailer] SMTP_HOST not set — skipping notification');
+    return;
+  }
 
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -37,10 +44,17 @@ export async function sendAdminNotification(data: NotificationData): Promise<voi
     },
   });
 
+  try {
+    await transporter.verify();
+  } catch (err) {
+    console.error('[mailer] SMTP connection verification failed:', err);
+    throw err;
+  }
+
   const dateFormatted = formatDate(data.slot.date);
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
+  const info = await transporter.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: adminEmail,
     subject: 'Nowa rezerwacja badania IDI',
     text: [
@@ -52,4 +66,6 @@ export async function sendAdminNotification(data: NotificationData): Promise<voi
       `Termin: ${dateFormatted} ${data.slot.startTime}-${data.slot.endTime}`,
     ].join('\n'),
   });
+
+  console.log('[mailer] Notification sent, messageId:', info.messageId);
 }
