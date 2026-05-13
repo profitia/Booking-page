@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Slot {
+  id         String   @id @default(cuid())
+  date       String
+  startTime  String
+  endTime    String
+  isReserved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  booking    Booking?
+
+  @@unique([date, startTime])
+}
+
+model Booking {
+  id        String   @id @default(cuid())
+  slotId    String   @unique
+  slot      Slot     @relation(fields: [slotId], references: [id])
+  fullName  String
+  email     String
+  phone     String
+  createdAt DateTime @default(now())
+}

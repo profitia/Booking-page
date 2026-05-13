@@ -1,0 +1,5 @@
+Umieść tutaj plik PDF z informacjami o badaniu.
+Nazwa pliku: informacja-o-badaniu.pdf
+
+Link w aplikacji: /materials/informacja-o-badaniu.pdf
+Ścieżka pliku:    client/public/materials/informacja-o-badaniu.pdf
