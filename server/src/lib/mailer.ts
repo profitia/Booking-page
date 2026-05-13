@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer';
-
 interface SlotInfo {
   date: string;
   startTime: string;
@@ -23,49 +21,87 @@ function formatDate(dateStr: string): string {
   return `${day} ${MONTHS_PL[month]} 2026`;
 }
 
+async function getGraphToken(): Promise<string> {
+  const tenantId = process.env.AZURE_TENANT_ID;
+  const clientId = process.env.AZURE_CLIENT_ID;
+  const clientSecret = process.env.AZURE_CLIENT_SECRET;
+
+  if (!tenantId || !clientId || !clientSecret) {
+    throw new Error('[mailer] Missing AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET');
+  }
+
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: clientId,
+    client_secret: clientSecret,
+    scope: 'https://graph.microsoft.com/.default',
+  });
+
+  const res = await fetch(
+    `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    }
+  );
+
+  const data = await res.json() as { access_token?: string; error_description?: string };
+  if (!res.ok || !data.access_token) {
+    throw new Error(`[mailer] Token fetch failed: ${data.error_description ?? JSON.stringify(data)}`);
+  }
+
+  return data.access_token;
+}
+
 export async function sendAdminNotification(data: NotificationData): Promise<void> {
   const adminEmail = process.env.ADMIN_EMAIL;
+  const mailFrom = process.env.MAIL_FROM;
+
   if (!adminEmail) {
     console.warn('[mailer] ADMIN_EMAIL not set — skipping notification');
     return;
   }
-  if (!process.env.SMTP_HOST) {
-    console.warn('[mailer] SMTP_HOST not set — skipping notification');
+  if (!mailFrom) {
+    console.warn('[mailer] MAIL_FROM not set — skipping notification');
     return;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_PORT === '465',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-  try {
-    await transporter.verify();
-  } catch (err) {
-    console.error('[mailer] SMTP connection verification failed:', err);
-    throw err;
-  }
-
+  const token = await getGraphToken();
   const dateFormatted = formatDate(data.slot.date);
 
-  const info = await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: adminEmail,
-    subject: 'Nowa rezerwacja badania IDI',
-    text: [
-      'Pojawiła się nowa rezerwacja.',
-      '',
-      `Imię i nazwisko: ${data.fullName}`,
-      `Email: ${data.email}`,
-      `Telefon: ${data.phone}`,
-      `Termin: ${dateFormatted} ${data.slot.startTime}-${data.slot.endTime}`,
-    ].join('\n'),
-  });
+  const body = [
+    'Pojawiła się nowa rezerwacja.',
+    '',
+    `Imię i nazwisko: ${data.fullName}`,
+    `Email: ${data.email}`,
+    `Telefon: ${data.phone}`,
+    `Termin: ${dateFormatted} ${data.slot.startTime}–${data.slot.endTime}`,
+  ].join('\n');
 
-  console.log('[mailer] Notification sent, messageId:', info.messageId);
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/users/${mailFrom}/sendMail`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: {
+          subject: 'Nowa rezerwacja badania IDI',
+          body: { contentType: 'Text', content: body },
+          toRecipients: [{ emailAddress: { address: adminEmail } }],
+        },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`[mailer] Graph API sendMail failed ${res.status}: ${err}`);
+  }
+
+  console.log(`[mailer] Notification sent to ${adminEmail} via Graph API`);
 }
+
