@@ -21,34 +21,59 @@ function formatDate(dateStr: string): string {
   return `${day} ${MONTHS_PL[month]} 2026`;
 }
 
+// In-memory refresh token — seeded from env var, updated on each successful exchange
+let currentRefreshToken = '';
+
+function getRefreshToken(): string {
+  if (!currentRefreshToken) {
+    currentRefreshToken = process.env.AZURE_REFRESH_TOKEN ?? '';
+  }
+  return currentRefreshToken;
+}
+
 async function getGraphToken(): Promise<string> {
   const tenantId = process.env.AZURE_TENANT_ID;
   const clientId = process.env.AZURE_CLIENT_ID;
-  const clientSecret = process.env.AZURE_CLIENT_SECRET;
+  const refreshToken = getRefreshToken();
 
-  if (!tenantId || !clientId || !clientSecret) {
-    throw new Error('[mailer] Missing AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET');
+  if (!tenantId || !clientId || !refreshToken) {
+    throw new Error('[mailer] Missing AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_REFRESH_TOKEN');
   }
 
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
+  const params = new URLSearchParams({
+    grant_type: 'refresh_token',
     client_id: clientId,
-    client_secret: clientSecret,
-    scope: 'https://graph.microsoft.com/.default',
+    refresh_token: refreshToken,
+    scope: 'https://graph.microsoft.com/Mail.Send offline_access',
   });
+
+  // client_secret only if set (confidential client)
+  const clientSecret = process.env.AZURE_CLIENT_SECRET;
+  if (clientSecret) params.set('client_secret', clientSecret);
 
   const res = await fetch(
     `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
+      body: params.toString(),
     }
   );
 
-  const data = await res.json() as { access_token?: string; error_description?: string };
+  const data = await res.json() as {
+    access_token?: string;
+    refresh_token?: string;
+    error?: string;
+    error_description?: string;
+  };
+
   if (!res.ok || !data.access_token) {
-    throw new Error(`[mailer] Token fetch failed: ${data.error_description ?? JSON.stringify(data)}`);
+    throw new Error(`[mailer] Token exchange failed: ${data.error_description ?? data.error ?? JSON.stringify(data)}`);
+  }
+
+  // Rotate in-memory refresh token if a new one was issued
+  if (data.refresh_token) {
+    currentRefreshToken = data.refresh_token;
   }
 
   return data.access_token;
@@ -80,7 +105,7 @@ export async function sendAdminNotification(data: NotificationData): Promise<voi
   ].join('\n');
 
   const res = await fetch(
-    `https://graph.microsoft.com/v1.0/users/${mailFrom}/sendMail`,
+    `https://graph.microsoft.com/v1.0/me/sendMail`,
     {
       method: 'POST',
       headers: {
