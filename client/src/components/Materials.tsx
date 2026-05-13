@@ -9,26 +9,21 @@ export default function Materials() {
         <p className="text-sm text-gray-500 mb-6 ml-10">
           Bardzo prosimy o przejrzenie poniższych materiałów przed rozmową.
         </p>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {/* Card 1 — Wideo */}
-          <a
-            href="https://www.youtube.com/watch?v=PLACEHOLDER"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex flex-col bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-400 hover:shadow-md transition-all duration-200 animate-fadeIn"
-          >
-            <div className="text-2xl mb-3">🎥</div>
-            <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-blue-700 transition-colors">
-              Obejrzyj materiał wideo
-            </h3>
-            <p className="text-sm text-gray-500 leading-relaxed flex-1">
-              Krótki materiał pokazujący aplikację i kontekst badania.
-            </p>
-            <span className="mt-4 text-sm font-medium text-blue-700 group-hover:underline">
-              Otwórz YouTube →
-            </span>
-          </a>
+        {/* Vimeo embed */}
+        <div className="mb-4 bg-white rounded-2xl border border-gray-200 overflow-hidden animate-fadeIn">
+          <div style={{ padding: '56.25% 0 0 0', position: 'relative' }}>
+            <iframe
+              src="https://player.vimeo.com/video/1191949889?badge=0&autopause=0&player_id=0&app_id=58479"
+              frameBorder="0"
+              allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
+              referrerPolicy="strict-origin-when-cross-origin"
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+              title="Aplikacja do badania"
+            />
+          </div>
+        </div>
 
+        <div className="grid gap-4">
           {/* Card 2 — PDF */}
           <a
             href="/materials/informacja-o-badaniu.pdf"
