@@ -43,8 +43,9 @@ async function ensureSlots() {
     last.date < RANGE_END.slice(0, 7); // rough check
 
   if (needsReset) {
-    await prisma.slot.deleteMany({});
-    console.log('Slots reset — re-seeding for new date range.');
+    // Only delete slots with no booking (avoid FK constraint violation)
+    await prisma.slot.deleteMany({ where: { booking: { is: null } } });
+    console.log('Slots without bookings removed — re-seeding for new date range.');
   } else {
     return;
   }
