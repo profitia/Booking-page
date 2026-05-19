@@ -31,6 +31,7 @@ async function ensureSlots() {
   // Clear and re-seed whenever date range changes
   const RANGE_START = '2026-05-25';
   const RANGE_END   = '2026-06-05';
+  const SKIP_DATES  = new Set(['2026-06-04']); // Zielone Świątki
 
   const first = await prisma.slot.findFirst({ orderBy: { date: 'asc' } });
   const last  = await prisma.slot.findFirst({ orderBy: { date: 'desc' } });
@@ -44,7 +45,6 @@ async function ensureSlots() {
 
   if (needsReset) {
     // Find all slots outside the valid range (wrong dates, weekends, holidays)
-    const SKIP_DATES = new Set(['2026-06-04']);
     const allSlots = await prisma.slot.findMany({ select: { id: true, date: true } });
     const invalidIds = allSlots
       .filter(s => {
