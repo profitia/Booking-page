@@ -28,8 +28,26 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 async function ensureSlots() {
-  const count = await prisma.slot.count();
-  if (count > 0) return;
+  // Clear and re-seed whenever date range changes
+  const RANGE_START = '2026-05-25';
+  const RANGE_END   = '2026-06-05';
+
+  const first = await prisma.slot.findFirst({ orderBy: { date: 'asc' } });
+  const last  = await prisma.slot.findFirst({ orderBy: { date: 'desc' } });
+
+  const needsReset =
+    !first ||
+    first.date !== RANGE_START ||
+    !last ||
+    last.date > RANGE_END ||
+    last.date < RANGE_END.slice(0, 7); // rough check
+
+  if (needsReset) {
+    await prisma.slot.deleteMany({});
+    console.log('Slots reset — re-seeding for new date range.');
+  } else {
+    return;
+  }
 
   const slotTimes = [
     { startTime: '16:00', endTime: '17:30' },
@@ -37,14 +55,18 @@ async function ensureSlots() {
   ];
 
   const data: { date: string; startTime: string; endTime: string }[] = [];
-  const start = new Date('2026-05-14');
-  const end = new Date('2026-05-31');
+  const start = new Date('2026-05-25');
+  const end = new Date('2026-06-05');
+  const SKIP_DATES = new Set(['2026-06-04']); // Zielone Świątki
   const current = new Date(start);
 
   while (current <= end) {
+    const day = current.getUTCDay(); // 0=Sun, 6=Sat
     const dateStr = current.toISOString().split('T')[0];
-    for (const t of slotTimes) {
-      data.push({ date: dateStr, ...t });
+    if (day !== 0 && day !== 6 && !SKIP_DATES.has(dateStr)) {
+      for (const t of slotTimes) {
+        data.push({ date: dateStr, ...t });
+      }
     }
     current.setDate(current.getDate() + 1);
   }
