@@ -43,9 +43,24 @@ async function ensureSlots() {
     last.date < RANGE_END.slice(0, 7); // rough check
 
   if (needsReset) {
-    // Only delete slots with no booking (avoid FK constraint violation)
-    await prisma.slot.deleteMany({ where: { booking: { is: null } } });
-    console.log('Slots without bookings removed — re-seeding for new date range.');
+    // Find all slots outside the valid range (wrong dates, weekends, holidays)
+    const SKIP_DATES = new Set(['2026-06-04']);
+    const allSlots = await prisma.slot.findMany({ select: { id: true, date: true } });
+    const invalidIds = allSlots
+      .filter(s => {
+        if (s.date < RANGE_START || s.date > RANGE_END) return true;
+        if (SKIP_DATES.has(s.date)) return true;
+        const dow = new Date(s.date + 'T12:00:00Z').getUTCDay();
+        return dow === 0 || dow === 6;
+      })
+      .map(s => s.id);
+
+    if (invalidIds.length > 0) {
+      // Delete associated bookings first to avoid FK violation
+      await prisma.booking.deleteMany({ where: { slotId: { in: invalidIds } } });
+      await prisma.slot.deleteMany({ where: { id: { in: invalidIds } } });
+      console.log(`Removed ${invalidIds.length} invalid slots (and their bookings).`);
+    }
   } else {
     return;
   }
@@ -58,7 +73,6 @@ async function ensureSlots() {
   const data: { date: string; startTime: string; endTime: string }[] = [];
   const start = new Date('2026-05-25');
   const end = new Date('2026-06-05');
-  const SKIP_DATES = new Set(['2026-06-04']); // Zielone Świątki
   const current = new Date(start);
 
   while (current <= end) {
